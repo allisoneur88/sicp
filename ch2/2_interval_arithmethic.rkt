@@ -36,8 +36,14 @@
 (define (print-interval i)
   (newline)
   (display (lower-bound i))
+<<<<<<< Updated upstream:ch2/2_interval_arithmethic.rkt
   (display "..")
   (display (upper-bound i)))
+=======
+  (display " .. ")
+  (display (upper-bound i))
+  i)
+>>>>>>> Stashed changes:ch2/2_interval_arithmethic.scm
  
 (define (test a b c d)
   (let ((i1 (make-interval a b))
