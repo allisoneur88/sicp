@@ -57,3 +57,45 @@
          (cons (car set1) (intersection-set-dupl (cdr set1) set2)))
         (else
          (intersection-set-dupl (cdr set1) set2))))
+
+; Ordered list
+(define (ord-element-of-set? x set)
+  (cond ((null? set) false)
+        ((= x (car set)) true)
+        ((> (car set) x) false)
+        (else
+           (ord-element-of-set? x (cdr set)))))
+
+(define (ord-adjoin-set x set)
+  (cond ((null? set) (list x))
+        ((= (car set) x)
+         set)
+        ((> (car set) x)
+         (cons x set))
+        (else
+         (cons (car set) (ord-adjoin-set x (cdr set))))))
+
+(define ordset (list 1 3 5 7))
+(display (ord-adjoin-set 4 ordset))
+
+(define (ord-intersection-set set1 set2)
+  (cond ((or (null? set1) (null? set2)) '())
+        ((= (car set1) (car set2))
+         (cons (car set1) (ord-intersection-set (cdr set1) (cdr set2))))
+        ((> (car set1) (car set2)) (ord-intersection-set set1 (cdr set2)))
+        ((> (car set2) (car set1)) (ord-intersection-set (cdr set1) set2))))
+
+(define ordset2 (list 5 7 9))
+(display (ord-intersection-set ordset ordset2))
+
+(define (ord-union-set set1 set2)
+  (cond ((null? set1) set2)
+        ((null? set2) set1)
+        ((= (car set1) (car set2))
+         (cons (car set1) (ord-union-set (cdr set1) (cdr set2))))
+        ((> (car set1) (car set2))
+         (cons (car set2) (ord-union-set set1 (cdr set2))))
+        ((> (car set2) (car set1))
+         (cons (car set1) (ord-union-set (cdr set1) set2)))))
+
+(display (ord-union-set ordset ordset2))
