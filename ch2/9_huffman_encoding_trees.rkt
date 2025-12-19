@@ -1,12 +1,16 @@
 (define (make-leaf symbol weight)
   (list 'leaf symbol weight))
+(display (make-leaf 'x 10))
 
 (define (leaf? object)
   (eq? (car object) 'leaf))
+(leaf? (make-leaf 'x 10))
 
 (define (symbol-leaf x) (cadr x))
-(define (weight-leaf x) (caddr x))
+(symbol-leaf (make-leaf 'x 10))
 
+(define (weight-leaf x) (caddr x))
+(weight-leaf (make-leaf 'x 10))
 
 (define (make-code-tree left right)
   (list
@@ -44,4 +48,17 @@
     ((= bit 1) (right-branch branch))
     (else (error "bad bit: CHOOSE-BRANCH" bit))))
 
+(define (adjoin-set x set)
+  (cond
+    ((null? set) (list x))
+    ((< (weight x) (weight (car set))) (cons x set))
+    (else
+      (cons (car set) (adjoin-set x (cdr set))))))
 
+(define (make-leaf-set pairs)
+  (if (null? pairs) 
+      '()
+      (let ((pair (car pairs)))
+       (adjoin-set (make-leaf (car pair)
+                              (cadr pair))
+                   (make-leaf-set (cdr pairs))))))
