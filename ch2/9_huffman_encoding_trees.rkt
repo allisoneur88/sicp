@@ -82,24 +82,49 @@
                    (make-leaf-set (cdr pairs))))))
 
 (define sample-tree
-  (make-code-tree (make-leaf 'a 4)
-                  (make-code-tree
-                   (make-leaf 'b 2)
-                   (make-code-tree
-                    (make-leaf 'd 1)
-                    (make-leaf 'c 1)))))
-
-(define sample-tree
   (make-code-tree
-    (make-leaf 'A 4)
-    (make-code-tree
-      (make-leaf 'B 2)
-      (make-code-tree
-       (make-leaf 'D 1)
-       (make-leaf 'C 1)))))
+    (make-leaf 'A 4)  ;	      (A B D C):8
+    (make-code-tree   ;		 /    \
+      (make-leaf 'B 2);	       A:4  (B D C):4
+      (make-code-tree ;		    /     \
+       (make-leaf 'D 1);          B:2  (D, C):2
+       (make-leaf 'C 1)))));	        /    \
+                      ;		      D:1    C:1
+
+(display (car sample-tree))
 
 (define sample-message
   '(0 1 1 0 0 1 0 1 0 1 1 1 0))
-
-(display (decode sample-message sample-tree))
+(define sample-decoded
+  '(A D A B B C A))
   
+
+(display (decode sample-message sample-tree)) ; (A  D  A  B  B  C  A)
+                                              ; 0  110 0 10 10 111 0
+(define (encode message tree)
+  (if (null? message)
+      '()
+      (append (encode-symbol (car message) tree)
+              (encode (cdr message) tree))))
+  
+(define (is-in? symbol symbols)
+  (cond
+    ((null? symbols) false)
+    ((eq? symbol (car symbols)) true)
+    (else (is-in symbol (cdr symbols)))))
+
+(define (first set)
+  (car set))
+
+(define (encode-symbol symbol tree)
+  (cond
+    ((null? tree) '())
+    ((not (is-in? symbol (symbols tree)))
+     (error "Symbol is not part of the tree: ENCODE-SYMBOL" symbol))
+    ((leaf? tree) '())
+    ((is-in? symbol (symbols (left-branch tree)))
+     (cons '0 (encode-symbol symbol (left-branch tree))))
+    (else
+      (cons '1 (encode-symbol symbol (right-branch tree))))))
+
+(display (encode sample-decoded sample-tree))
