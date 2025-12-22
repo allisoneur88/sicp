@@ -97,7 +97,6 @@
   '(0 1 1 0 0 1 0 1 0 1 1 1 0))
 (define sample-decoded
   '(A D A B B C A))
-  
 
 (display (decode sample-message sample-tree)) ; (A  D  A  B  B  C  A)
                                               ; 0  110 0 10 10 111 0
@@ -111,7 +110,7 @@
   (cond
     ((null? symbols) false)
     ((eq? symbol (car symbols)) true)
-    (else (is-in symbol (cdr symbols)))))
+    (else (is-in? symbol (cdr symbols)))))
 
 (define (first set)
   (car set))
@@ -128,3 +127,41 @@
       (cons '1 (encode-symbol symbol (right-branch tree))))))
 
 (display (encode sample-decoded sample-tree))
+
+(define (generate-huffman-tree pairs)
+  (successive-merge (make-leaf-set pairs)))
+
+(define (successive-merge leaf-set)
+  (cond ((null? leaf-set) '())
+        ((null? (cdr leaf-set)) (car leaf-set)) 
+        (else
+         (let ((first-leaf (car leaf-set))
+               (second-leaf (cadr leaf-set)))
+          (let ((new-tree (make-code-tree first-leaf second-leaf)))
+           (successive-merge
+            (adjoin-set
+             new-tree (cddr leaf-set))))))))
+
+(display (successive-merge (make-leaf-set '((a 4) (b 2) (d 1) (c 1)))))
+
+(define rock-leaf-set
+  '((a 2) (Get 2) (Sha 3) (Wah 1) (boom 1) (job 2) (na 16) (yip 9)))
+
+(define rock-tree
+  (generate-huffman-tree rock-leaf-set))
+
+(display rock-tree)
+
+(define rock-to-encode
+  '(Get a job
+    Sha na na na na na na na na
+    Get a job
+    Sha na na na na na na na na
+    Wah yip yip yip yip yip yip yip yip yip
+    Sha boom))   
+
+(define rock-encoded
+  (encode rock-to-encode rock-tree))
+
+(display rock-encoded)
+(length rock-encoded) ; => 84 bits vs 36 * 3 = 118
