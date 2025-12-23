@@ -10,7 +10,7 @@
 (define (list-ref items n)
   (if (eq? n 0)
     (car items)
-    (nth (cdr items) (- n 1))))
+    (list-ref (cdr items) (- n 1))))
 
 (list-ref onetofour 3)
 
@@ -64,20 +64,6 @@
 
 (define (same-parity . items)
   (let ((parity (even? (car items))))
-    (if (eq? (even? (car items)) parity)
-      (cons (car items) (same-parity (cdr items)))
-      (same-parity (cdr items)))))
-
-(define (same-parity . items)
-  (define (helper l)
-    (let ((parity (even? (car l))))
-      (if (eq? (even? (car l)) parity)
-       (cons (car l) (helper (cdr l)))
-       (helper (cdr l)))))
-  (helper items))
-
-(define (same-parity . items)
-  (let ((parity (even? (car items))))
     (define (helper l)
       (if (null? l)
        '()
@@ -95,5 +81,3 @@
     (cons (* factor (car items)) (scale-list (cdr items) factor))))
 
 (scale-list onetofour 5)
-
-

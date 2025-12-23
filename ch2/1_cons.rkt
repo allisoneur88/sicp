@@ -4,7 +4,7 @@
   (define (dispatch m)
     (cond ((= m 0) x)
           ((= m 1) y)
-          (else (error "Argument not 0 or 1: " m))))
+          (else (error "Argument not 0 or 1: STRUCT" m))))
   dispatch)
 (define (fir s)
   (s 0))
