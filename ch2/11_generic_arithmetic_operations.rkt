@@ -1,5 +1,31 @@
 #lang sicp
 
+; get and put impls
+(define *operation-table* '())
+
+(define (put op type-tags proc)
+  (let ((record (assoc (list op type-tags) *operation-table*)))
+    (if record
+     (set-cdr! record proc)
+     (set! *operation-table*
+       (cons (cons (list op type-tags) proc)
+        *operation-table*))))
+  'ok)
+
+(define (get op type-tags)
+  (let ((record (assoc (list op type-tags) *operation-table*)))
+    (if record
+     (cdr record)
+     #f)))
+
+(define (show-table)
+  (for-each (lambda (entry)
+             (display (car entry))
+             (display " => ")
+             (display (cdr entry))
+             (newline))
+      *operation-table*))
+
 (define (apply-generic op . args)
   (let ((type-tags (map type-tag args)))
     (let ((proc (get op type-tags)))
@@ -42,8 +68,8 @@
   
   (put 'make 'scheme-number (lambda (x) (tag x)))
 
-  (put 'equ? 'scheme-number
-       (lambda (n1 n2) (= n1 n2)))
+  (put 'equ? '(scheme-number)
+       (lambda (n1 n2) (= (contents n1) (contents n2))))
 
   'done)
 
@@ -86,12 +112,12 @@
        (lambda (x y) (tag (div-rat x y))))
   
   (put 'make 'rational
-       (lambda n d) (tag (make-rat n d)))
+       (lambda (n d) (tag (make-rat n d))))
 
-  (put 'equ? 'rational
+  (put 'equ? '(rational)
        (lambda (r1 r2)
-        (and (= (numer r1) (numer r2))
-             (= (denom r1) (denom r2)))))
+        (and (= (numer (contents r1)) (numer (contents r2)))
+             (= (denom (contents r1)) (denom (contents r2))))))
 
   'done)
 
@@ -99,12 +125,74 @@
 (define (make-rational n d)
   ((get 'make 'rational) n d))
 
-; complex package
+; previous complex packages - rect and polar
+; rectangular package
+(define (install-rectangular-package)
+  (define (real-part z) (car z))
+  (define (imag-part z) (cdr z))
+  (define (make-from-real-imag x y) (cons x y))
+
+  (define (magnitude z)
+    (sqrt
+      (+ (square (real-part z)) (square (imag-part z)))))
+  (define (angle z)
+    (atan (imag-part z) (real-part z)))
+  (define (make-from-mag-ang r a)
+    (cons (* r (cos a)) (* r (sin a))))
+
+  (define (tag x) (attach-tag 'rectangular x))
+
+  (put 'real-part '(rectangular) real-part)
+  (put 'imag-part '(rectangular) imag-part)
+  (put 'magnitude '(rectangular) magnitude)
+  (put 'angle '(rectangular) angle)
+  (put 'make-from-real-imag 'rectangular
+       (lambda (x y) (tag (make-from-real-imag x y))))
+  (put 'make-from-mag-ang 'rectangular
+       (lambda (r a) (tag (make-from-mag-ang r a))))
+  'done)
+
+;polar package
+(define (install-polar-package)
+  (define (real-part z) 
+    (* (magnitude z) (cos (angle z))))
+  (define (imag-part z)
+    (* (magnitude z) (sin (angle z))))
+  (define (make-from-real-imag x y)
+    (cons
+      (sqrt (+ (square x) (square y)))
+      (atan y x)))
+
+  (define (magnitude z)
+    (car z))
+  (define (angle z)
+    (cdr z))
+  (define (make-from-mag-ang r a)
+    (cons r a))
+
+  (define (tag x) (attach-tag 'polar x))
+
+  (put 'real-part '(polar) real-part)
+  (put 'imag-part '(polar) imag-part)
+  (put 'magnitude '(polar) magnitude)
+  (put 'angle '(polar) angle)
+  (put 'make-from-real-imag 'polar
+       (lambda (x y) (tag (make-from-real-imag x y))))
+  (put 'make-from-mag-ang 'polar
+       (lambda (r a) (tag (make-from-mag-ang r a))))
+  'done)
+
+; new complex package
 (define (install-complex-package)
   (define (make-from-real-imag x y)
     ((get 'make-from-real-imag 'rectangular) x y))
   (define (make-from-mag-ang r a)
     ((get 'make-from-mag-ang 'polar) r a))
+
+  (define (real-part z)
+    ((get 'real-part '(rectangular)) z))
+  (define (imag-part z)
+    ((get 'imag-part '(rectangular)) z))
 
   (define (add-complex z1 z2)
     (make-from-real-imag (+ (real-part z1) (real-part z2))
@@ -161,6 +249,8 @@
   ((get 'make-from-mag-ang 'complex) r a))
 
 (define (install-generic-package)
+  (install-rectangular-package)
+  (install-polar-package)
   (install-scheme-number-package)
   (install-rational-package)
   (install-complex-package))
@@ -188,3 +278,33 @@
          false))
        (else (error "Unknown number type: EQU?" (list n1 n2))))
       false))
+
+(install-generic-package)
+
+(display (make-scheme-number 5))
+(display (make-rational 3 5))
+
+(display (make-complex-from-real-imag 3 5))
+(display (make-complex-from-mag-ang 3 5))
+
+(define (rp z)
+  ((get 'real-part '(complex)) z))
+(display (rp (make-complex-from-real-imag 3 5)))
+
+(show-table)
+
+(define (ordinary-equ? n1 n2)
+  ((get 'equ? '(scheme-number)) n1 n2))
+(ordinary-equ? (make-scheme-number 3) (make-scheme-number 3))
+(ordinary-equ? (make-scheme-number 5) (make-scheme-number 3))
+
+(define (rational-equ? r1 r2)
+  ((get 'equ? '(rational)) r1 r2))
+(rational-equ? (make-rational 3 5) (make-rational 3 5))
+(rational-equ? (make-rational 3 5) (make-rational 6 10))
+(rational-equ? (make-rational 3 5) (make-rational 5 3))
+
+(define (complex-equ? z1 z2)
+  ((get 'equ? 'complex) z1 z2))
+
+(complex-equ? (make-complex-from-real-imag 3 5) (make-complex-from-mag-ang 3 5))
