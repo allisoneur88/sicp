@@ -1,5 +1,6 @@
 #lang sicp
 
+(define (square x) (* x x))
 ; get and put impls
 (define *operation-table* '())
 
@@ -327,3 +328,35 @@
 (=zero? (make-complex-from-mag-ang 3 0))
 (=zero? (make-complex-from-mag-ang 0 5))
 (=zero? (make-complex-from-mag-ang 0 0))
+
+(define schnum1 (make-scheme-number 3))
+(define schnum2 (make-scheme-number 5))
+(define rat1 (make-rational 3 5))
+(define rat2 (make-rational 4 7))
+(define comp1 (make-complex-from-real-imag 3 5))
+(define comp2 (make-complex-from-mag-ang 4 6))
+
+(display (add schnum1 schnum2))
+(display (sub schnum1 schnum2))
+(display (mul schnum1 schnum2))
+(display (div schnum1 schnum2))
+
+(display (add rat1 rat2))
+(display (sub rat1 rat2))
+(display (mul rat1 rat2))
+(display (div rat1 rat2))
+
+(display (add comp1 comp1))
+(display (sub comp1 comp1))
+(display (mul comp1 comp1))
+(display (div comp1 comp1))
+
+(display (add comp2 comp2))
+(display (sub comp2 comp2))
+(display (mul comp2 comp2))
+(display (div comp2 comp2))
+
+(display (add comp1 comp2))
+(display (sub comp1 comp2))
+(display (mul comp1 comp2))
+(display (div comp1 comp2))
