@@ -95,14 +95,6 @@
               (list op type-tags)))))))
                   
 ; ex. 2.82
-
-(define (can-be-coerced-to-type args type flag)
-  (if (eq? flag #f)
-      #f
-      (if (eq? (get-coercion (type-tag (car args)) type) #f)
-          (can-be-coerced-to-type args type #f)
-          (can-be-coerced-to-type (cdr args) type #t))))
-
 (define (can-be-coerced-to-type args type flag)
   (cond ((null? args) #t)
         ((eq? flag #f) #f)
@@ -113,6 +105,50 @@
         (else
          (can-be-coerced-to-type (cdr args) type #t))))
 
-; it's a double loop, need to look it up
-(define (iter-on-types))
+(define (try-coerce args helper-list)
+  (cond ((null? helper-list) (error "No method for these types: TRY-COERCE" args)) 
+        ((eq? (can-be-coerced-to-type args (type-tag (car helper-list)) #t) #t)
+         (coerce args (type-tag (car helper-list))))
+        (else
+         (try-coerce args (cdr helper-list)))))
 
+(define (coerce args type)
+  (cond ((null? args) '())
+        ((eq? (type-tag (car args)) type)
+         (cons (car args) (coerce (cdr args) type)))
+        (else
+         (cons ((get-coercion (type-tag (car args)) type) (car args)) (coerce (cdr args) type)))))
+
+(define (apply-generic op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+       (apply proc (map contents args))
+       (let ((new-args (try-coerce args args)))
+        (let ((new-proc (get op (map type-tag new-args))))
+         (if new-proc
+          (apply new-proc (map contents new-args))
+          (error "No method for these types even after coercion: APPLY-GENERIC"
+                 (list op new-args)))))))))
+
+(define install-raise-package
+  (define (integer->rational n)
+    (make-rational (contents n) 1))
+  (define (rational->real r)
+    (let ((num (/ (numer r) (denom r))))
+      (cons 'real num)))
+  (define (real->complex n)
+    (make-complex-from-real-imag (cdr n) 0)))
+
+
+(define (integer->rational n)
+   (make-rational (contents n) 1))
+(define (rational->real r)
+   (let ((num (/ (numer r) (denom r))))
+     (cons 'real num)))
+(define (real->complex n)
+   (make-complex-from-real-imag (cdr n) 0))
+
+(define num (make-scheme-number 5))
+(display (integer->rational num))
+(display(rational->real (integer->rational num)))
