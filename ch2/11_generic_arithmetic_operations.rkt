@@ -1,5 +1,6 @@
 #lang sicp
 
+(define pi (acos -1))
 (define (square x) (* x x))
 ; get and put impls
 (define *operation-table* '())
@@ -37,16 +38,19 @@
         (list op type-tags))))))
 
 (define (attach-tag type-tag contents)
-  (cons type-tag contents))
-(define (type-tag datum)
-  (if (pair? datum)
-      (car datum)
-      (error "Bad tagged datum: TYPE-TAG" datum)))
-(define (contents datum)
-  (if (pair? datum)
-      (cdr datum)
-      (error "Bad tagged datum: CONTENTS" datum)))
+  (if (eq? type-tag 'scheme-number)
+      contents
+      (cons type-tag contents)))
 
+(define (type-tag datum)
+  (cond ((pair? datum) (car datum))
+        ((number? datum) 'scheme-number)
+        (else (error "Bad tagged datum: TYPE-TAG" datum))))
+      
+(define (contents datum)
+  (cond ((pair? datum) (cdr datum))
+        ((number? datum) datum)
+        (else (error "Bad tagged datum: CONTENTS" datum)))) 
 
 ; our target
 (define (add x y) (apply-generic 'add x y))
@@ -74,6 +78,9 @@
 
   (put '=zero? '(scheme-number)
        (lambda (n) (= n 0)))
+
+  (put 'negate '(scheme-number)
+       (lambda (n) (tag (* n -1))))
 
   'done)
 
@@ -126,6 +133,10 @@
   (put '=zero? '(rational)
        (lambda (r) (= (numer r) 0)))
 
+  (put 'negate '(rational)
+       (lambda (r)
+        (make-rat (* (numer r) -1) (denom r))))
+
   'done)
 
 ; then users can do
@@ -167,6 +178,12 @@
        (lambda (z)
         (and (= (real-part z) 0)
              (= (imag-part z) 0))))
+
+  (put 'negate '(rectangular)
+       (lambda (z)
+        (tag (make-from-real-imag
+              (* (real-part z) -1)
+              (* (imag-part z) -1)))))
   'done)
 
 ;polar package
@@ -207,6 +224,12 @@
        (lambda (z)
         (= (magnitude z) 0)))
 
+  (put 'negate '(polar)
+       (lambda (z)
+        (tag (make-from-mag-ang
+              (magnitude z)
+              (+ (angle z) pi)))))
+
   'done)
 
 ; new complex package
@@ -243,7 +266,9 @@
 
   (define (=zero? z)
     (apply-generic '=zero? z))
-  
+
+  (define (negate z)
+    (tag (apply-generic 'negate z)))
 
   (define (tag z) (attach-tag 'complex z))
 
@@ -269,6 +294,7 @@
   (put 'equ? '(complex complex) equ?)
 
   (put '=zero? '(complex) =zero?)
+  (put 'negate '(complex) negate)
 
   'done)
 
@@ -306,6 +332,9 @@
 
 (define (=zero? n)
   (apply-generic '=zero? n))
+
+(define (negate n)
+  (apply-generic 'negate n))
 
 (equ? (make-scheme-number 3) (make-scheme-number 3))
 (equ? (make-rational 3 6) (make-rational 3 5))
@@ -360,3 +389,11 @@
 (display (sub comp1 comp2))
 (display (mul comp1 comp2))
 (display (div comp1 comp2))
+
+(display (negate schnum1))
+(display (negate rat1))
+(display (negate comp1))
+(display (negate comp2))
+
+(display (add comp1 (negate comp1)))
+(display (add comp2 (negate comp2)))

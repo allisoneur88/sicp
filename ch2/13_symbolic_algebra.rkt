@@ -7,34 +7,11 @@
 ; constructor make-poly
 
 ; we will need a table
-(define *operation-table* '())
-
-(define (put op type-tags proc)
-  (let ((record (assoc (list op type-tags) *operation-table*)))
-    (if record
-     (set-cdr! record proc)
-     (set! *operation-table*
-       (cons (cons (list op type-tags) proc)
-        *operation-table*))))
-  'ok)
-
-(define (get op type-tags)
-  (let ((record (assoc (list op type-tags) *operation-table*)))
-    (if record
-     (cdr record)
-     #f)))
-
-(define (show-table)
-  (for-each (lambda (entry)
-             (display (car entry))
-             (display " => ")
-             (display (cdr entry))
-             (newline))
-      *operation-table*))
+; we are linking to the generic arithmetics package
 
 ; let's make a package
 
-(define install-polynomial-package
+(define (install-polynomial-package)
   (define (make-poly variable term-list)
     (cons variable term-list))
   (define (variable p)
@@ -47,8 +24,24 @@
   (define (variable? v)
     (symbol? v))
 
-  (define (adjoin-term))
-  (define (coeff))
+  (define (adjoin-term term term-list)
+    (if (=zero? (coeff term))
+     term-list
+     (cons term term-list)))
+
+  (define (the-empty-term-list) '())
+  (define (first-term term-list)
+    (car term-list))
+  (define (rest-terms term-list)
+    (cdr term-list))
+  (define (empty-termlist? term-list)
+    (null? term-list))
+  (define (make-term order coeff)
+    (list order coeff))
+  (define (order term)
+    (car term))
+  (define (coeff term)
+    (cadr term))
 
   (define (add-poly p1 p2)
     (if (same-variable? (variable p1) (variable p2))
@@ -111,4 +104,29 @@
 
 ;TODO: tie to the generic arithmetics package
 
+(install-polynomial-package)
+(install-generic-package)
 
+(define (make-polynomial var terms)
+  ((get 'make 'polynomial) var terms))
+
+(define (msn n) (make-scheme-number n))
+(define (mr n) (make-rational n 1))
+
+(define poly1
+  (make-polynomial 'x (list (list (msn 2) (msn 3)) (list (msn 1) (msn 2)) (list (msn 0) (msn 1)))))
+(define poly2
+  (make-polynomial 'x (list (list (msn 2) (msn 3)) (list (msn 1) (msn 2)) (list (msn 0) (msn 1)))))
+
+(define poly3
+  (make-polynomial 'y (list (list (msn 2) (mr 3)) (list (msn 1) (mr 2)) (list (msn 0) (mr 1)))))
+(define poly4
+  (make-polynomial 'y (list (list (msn 2) (mr 3)) (list (msn 1) (mr 2)) (list (msn 0) (mr 1)))))
+
+(display poly1)
+(display poly2)
+(display poly3)
+(display poly4)
+(display (add poly1 poly2))
+
+(display (add poly3 poly4))
