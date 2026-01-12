@@ -49,6 +49,12 @@
                 (add-terms (term-list p1) (term-list p2)))
      (error "Polys not in same var: ADD-POLY" (list p1 p2))))
 
+  (define (sub-poly p1 p2)
+    (if (same-variable? (variable p1) (variable p2))
+     (make-poly (variable p1)
+                (sub-terms (term-list p1) (term-list p2)))
+     (error "Polys not in same var: SUB-POLY" (list p1 p2))))
+
   (define (add-terms L1 L2)
     (cond ((empty-termlist? L1) L2)
           ((empty-termlist? L2) L1)
@@ -62,27 +68,37 @@
                    (adjoin-term
                     t2 (add-terms L1 (rest-terms L2))))
                   (else
-                   (adjoin-term
-                    (make-term (order t1)
-                               (add (coeff t1) (coeff t2)))
-                    (add-terms (rest-terms L1) (rest-terms L2)))))))))
+                        (adjoin-term
+                         (make-term (order t1)
+                                    (add (coeff t1) (coeff t2)))
+                         (add-terms (rest-terms L1) (rest-terms L2)))))))))
+
+  (define (sub-terms L1 L2)
+    (add-terms L1 (negate-term-list L2)))
+
+  (define (negate-term-list L)
+    (if (empty-termlist? L) 
+     (the-empty-term-list)
+     (adjoin-term
+       (make-term (order (first-term L)) (negate (coeff (first-term L))))
+       (negate-term-list (rest-terms L)))))
 
   (define (mul-poly p1 p2)
-    (if (same-varibale? (variable p1) (variable p2))
+    (if (same-variable? (variable p1) (variable p2))
      (make-poly (variable p1)
                 (mul-terms (term-list p1) (term-list p2)))
      (error "Polys not in same var: MUL-POLY" (list p1 p2))))
 
   (define (mul-terms L1 L2)
     (if (empty-termlist? L1)
-     (the-empty-termlist)
+     (the-empty-term-list)
      (add-terms
        (mul-term-by-all-terms (first-term L1) L2)
        (mul-terms (rest-terms L1) L2))))
 
   (define (mul-term-by-all-terms t1 L)
     (if (empty-termlist? L)
-     (the-empty-termlist)
+     (the-empty-term-list)
      (let ((t2 (first-term L)))
        (adjoin-term
         (make-term (+ (order t1) (order t2))
@@ -95,14 +111,14 @@
 
   (put 'add '(polynomial polynomial)
        (lambda (p1 p2) (tag (add-poly p1 p2))))
+  (put 'sub '(polynomial polynomial)
+       (lambda (p1 p2) (tag (sub-poly p1 p2))))
   (put 'mul '(polynomial polynomial)
        (lambda (p1 p2) (tag (mul-poly p1 p2))))
   (put 'make 'polynomial
        (lambda (var terms) (tag (make-poly var terms))))
 
   'done)
-
-;TODO: tie to the generic arithmetics package
 
 (install-polynomial-package)
 (install-generic-package)
@@ -114,7 +130,7 @@
 (define (mr n) (make-rational n 1))
 
 (define poly1
-  (make-polynomial 'x (list (list (msn 2) (msn 3)) (list (msn 1) (msn 2)) (list (msn 0) (msn 1)))))
+  (make-polynomial 'x (list (list (msn 2) (msn 4)) (list (msn 1) (msn 2)) (list (msn 0) (msn 1)))))
 (define poly2
   (make-polynomial 'x (list (list (msn 2) (msn 3)) (list (msn 1) (msn 2)) (list (msn 0) (msn 1)))))
 
@@ -130,3 +146,5 @@
 (display (add poly1 poly2))
 
 (display (add poly3 poly4))
+(display (sub poly2 poly1))
+(display (mul poly1 poly2))
