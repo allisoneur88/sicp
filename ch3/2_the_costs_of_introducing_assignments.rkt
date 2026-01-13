@@ -1,3 +1,4 @@
+#lang sicp
 ; eval file 1
 (define (make-simplified-withdraw balance)
   (lambda (amount)
@@ -45,26 +46,6 @@
 
 ; ex. 3.7
 (define (make-account-pw balance password)
-  (define (withdraw amount)
-    (if (>= balance amount)
-      (begin (set! balance (- balance amount))
-             balance)
-      "Insufficient funds"))
-  (define (deposit amount)
-    (begin (set! balance (+ balance amount))
-           balance))
-  (define (pw-correct? attempt)
-    (eq? password attempt))
-  (define (dispatch pw m)
-    (if (eq? pw password)
-      (cond ((eq? m 'withdraw) withdraw)
-            ((eq? m 'deposit) deposit)
-            ((eq? m 'pw-correct?) pw-correct?)
-            (else (error "Unknown request: MAKE-ACCOUNT-PW" m)))
-      (error "Incorrect password")))
-  dispatch)
-
-(define (make-account-pw balance password)
   (define (login)
     (define (withdraw amount)
       (if (>= balance amount)
@@ -86,14 +67,20 @@
       (error "Incorrect password")))
   dispatch)
 
-(define A (make-account-pw 100 'rose))
-(define A-logged-in (A 'rose 'login))
-((A-logged-in 'deposit) 100)
-((A-logged-in 'withdraw) 50)
-
 (define (make-joint acc accs-pw new-pw)
-  (define (withdraw amount))
-  (define (dispatch pw m)
-    (if (eq?))))
+  (let ((logged-in-acc (acc accs-pw 'login)))
+    (define (dispatch pw m)
+      (if (eq? pw new-pw)
+       (cond ((eq? m 'login) logged-in-acc)
+             (else (error "Unknown request (not logged in)")))
+       (error "Incorrect password for joint-acc")))
+    dispatch))
 
+(define a1 (make-account-pw 100 'red))
+(define a1l (a1 'red 'login))
+
+(define a2 (make-joint a1 'red 'blue))
+(define a2l (a2 'blue 'login))
+
+(define a3 (make-joint a2 'blu 'green))
 
