@@ -84,3 +84,15 @@
 
 (define a3 (make-joint a2 'blu 'green))
 
+; ex. 3.8
+(define f
+  (let ((counter 0))
+    (lambda (x)
+      (if (= x 1)
+       (begin (set! counter (+ counter 1))
+              (* counter (+ x 1)))
+       (* counter (+ x 1))))))
+
+(+ (f 0) (f 1))
+(+ (f 1) (f 0))
+
