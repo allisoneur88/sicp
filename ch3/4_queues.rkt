@@ -26,6 +26,8 @@
 (q! q 'a)
 
 ; now lets go sicp way
+(define (make-queue) (cons '() '()))
+
 (define (front-ptr queue) (car queue))
 (define (rear-ptr queue) (cdr queue))
 
@@ -36,8 +38,6 @@
 
 (define (empty-queue? queue)
   (null? (front-ptr queue)))
-
-(define (make-queue) (cons '() '()))
 
 (define (front-queue queue)
   (if (empty-queue? queue)
@@ -51,9 +51,9 @@
            (set-rear-ptr! queue new-pair)
            queue)
           (else
-           (set-cdr! (rear-ptr queue) new-pair)
-           (set-rear-ptr! queue new-pair)
-           queue))))
+           (set-cdr! (rear-ptr queue) new-pair) ; this also mutates the front ptr
+           (set-rear-ptr! queue new-pair)       ; because both front and rear
+           queue))))                            ; point to the same cons cell
 
 (define (delete-queue! queue)
   (cond ((empty-queue? queue)
@@ -61,14 +61,85 @@
         (else (set-front-ptr! queue (cdr (front-ptr queue)))
               queue)))
 
+; ex. 3.21
+(define (print-queue queue)
+  (define (print-list list)
+    (if (null? (cdr list))
+     (begin
+       (display (car list))
+       (display " <= rear"))
+     (begin
+       (display (car list))
+       (display " <- ")
+       (print-list (cdr list)))))
+  (cond ((empty-queue? queue)
+         (error "PRINT called on an empty queue"))
+        (else
+         (display "front <= ")
+         (print-list (front-ptr queue)))))
+
 (define q (make-queue))
-(display q)
-(empty-queue? q)
 (insert-queue! q 'a)
-(display q)
 (insert-queue! q 'b)
-(display q)
 (insert-queue! q 'c)
-(display q)
+(print-queue q)
 (delete-queue! q)
-(display q)
+(print-queue q)
+
+; ex. 3.22
+(define (make-queue-mp)
+  (let ((front-ptr '())
+        (rear-ptr '()))
+    (define (empty-queue?)
+      (null? front-ptr))
+    (define (insert-queue! item)
+      (let ((new-pair (cons item '())))
+       (cond ((empty-queue?)
+              (set! front-ptr new-pair)
+              (set! rear-ptr new-pair))
+             (else
+              (set-cdr! rear-ptr new-pair)
+              (set! rear-ptr new-pair)))))
+    (define (delete-queue!)
+      (cond ((empty-queue?)
+             (error "DELETE called on empty queue"))
+            (else
+             (set! front-ptr (cdr front-ptr)))))
+    (define (print-queue)
+      (define (print-iter list)
+       (cond ((null? (cdr list))
+              (display (car list))
+              (display " <- rear"))
+             (else
+              (display (car list))
+              (display " <- ")
+              (print-iter (cdr list)))))
+      (cond ((empty-queue?)
+             (display "Empty queue"))
+            (else
+             (display "front <- ")
+             (print-iter front-ptr))))
+             
+    (define (dispatch m)
+      (cond ((eq? m 'insert!) insert-queue!)
+            ((eq? m 'delete!) delete-queue!)
+            ((eq? m 'empty?) empty-queue?)
+            ((eq? m 'print) print-queue)
+            (else (error "Unknown dispatch mode"))))
+    dispatch))
+ 
+(define (insert-mp! queue item)
+  ((queue 'insert!) item))
+(define (delete-mp! queue)
+  ((queue 'delete!)))
+(define (empty-mp? queue)
+  ((queue 'empty?)))
+(define (print-mp queue)
+  ((queue 'print)))
+
+(define qq (make-queue-mp))
+(insert-mp! qq 1)
+(insert-mp! qq 2)
+(print-mp qq)
+(empty-mp? qq)
+(delete-mp! qq)
