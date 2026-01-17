@@ -21,11 +21,26 @@
     (constant 32 y)
     'ok))
 
-; TODO: Think how to write a probe here
 (define (probe name connector)
-  (lambda ()
+  (define (print-probe)
     (newline)
-    (display "Probe: ") (display name) (display " = ") (display (get-value connector))))
+    (display "Probe: ")
+    (display name)
+    (display " = ")
+    (display (get-value connector)))
+  (define (process-new-value)
+    (print-probe))
+  (define (process-forget-value)
+    (newline)
+    (display "Probe: ")
+    (display name)
+    (display " = ?"))
+  (define (me request)
+    (cond ((eq? request 'I-have-a-value) (process-new-value))
+          ((eq? request 'I-lost-my-value) (process-forget-value))
+          (else (error "Unknown request: PROBE" request))))
+  (connect connector me)
+  me)
 
 (probe "Celsius temp" C)
 (probe "Fahrenheit temp" F)
@@ -85,7 +100,7 @@
   (connect sum me)
   me)
 
-'
+
 (define (inform-about-value constraint)
   (constraint 'I-have-a-value))
 (define (inform-about-no-value constraint)
@@ -183,3 +198,64 @@
   ((connector 'forget) retractor))
 (define (connect connector new-constraint)
   ((connector 'connect) new-constraint))
+
+; ex. 3.33 Averager
+(define (averager n1 n2 avg)
+  (let ((u (make-connector))
+        (v (make-connector)))
+    (multiplier v u avg)
+    (adder n1 n2 v)
+    (constant 0.5 u)
+    'ok))
+
+(define N1 (make-connector))
+(define N2 (make-connector))
+(define AVG (make-connector))
+
+(define avger (averager N1 N2 AVG))
+
+(probe 'N1 N1)
+(probe 'N2 N2)
+(probe 'AVG AVG)
+
+(set-value! N1 5 'user)
+(set-value! N2 7 'user)
+
+; ex. 3.34 Squarer
+;(define (squarer n sq)
+  ;(multiplier n n sq))
+
+(define N (make-connector))
+(define SQ (make-connector))
+(define sqrer (squarer N SQ))
+(probe 'N N)
+(probe 'SQ SQ)
+(set-value! N 5 'user)
+(forget-value! N 'user)
+(set-value! SQ 144.0 'user)
+(forget-value! SQ 'user)
+; so setting SQ to a value will not calculate N.
+; solution is to define a new primitive constraint
+(define (squarer n sq)
+  (define (process-new-value)
+    (if (has-value? sq)
+     (if (< (get-value sq) 0)
+      (error "square less than 0: SQUARER" (get-value sq))
+      (set-value! n
+                  (sqrt (get-value sq))
+                  me))
+     (if (has-value? n)
+      (set-value! sq
+                  (* (get-value n) (get-value n))
+                  me))))
+  (define (process-forget-value)
+    (forget-value! n me)
+    (forget-value! sq me)
+    (process-new-value))
+  (define (me request)
+    (cond ((eq? request 'I-have-a-value) (process-new-value))
+          ((eq? request 'I-lost-my-value) (process-forget-value))
+          (else (error "Unknown request: SQUARER" request))))
+  (connect n me)
+  (connect sq me)
+  me)
