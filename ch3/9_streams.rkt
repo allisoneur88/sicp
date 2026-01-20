@@ -1,3 +1,5 @@
+#lang sicp
+
 (define (stream-ref s n)
   (if (= n 0)
       (stream-car s)
@@ -31,8 +33,8 @@
 (define (display-stream-n s n)
   (stream-for-n display-line s n))
 
-(define (cons-stream a b)
-  (cons a (delay b)))
+;(define (cons-stream a b)
+  ;(cons a (delay b)))
 
 (define (stream-car stream)
   (car stream))
@@ -76,26 +78,26 @@
          (stream-filter pred (stream-cdr stream)))))
 
 ; what about delay and force?
-(define (delay expression)
-  (lambda () expression))
+;(define (delay expression)
+  ;(lambda () expression))
 
-(define (force delayed-object)
-  (delayed-object))
+;(define (force delayed-object)
+  ;(delayed-object))
 
 ; there is an important optimization that
 ; we can include - memoization
-(define (memo-proc proc)
-  (let ((already-run? false) (result false))
-    (lambda ()
-      (if (not already-run?)
-       (begin (set! result (proc))
-              (set! already-run? true)
-              result)
-       result))))
+;(define (memo-proc proc)
+;  (let ((already-run? false) (result false))
+;    (lambda ()
+;      (if (not already-run?)
+;       (begin (set! result (proc))
+;              (set! already-run? true)
+;              result)
+;       result))))
 
 ; delay is then defined as
-(define (delay expression)
-  (memo-proc (lambda () expression)))
+;(define (delay expression)
+ ;(memo-proc (lambda () expression)))
 
 ; ex 3.51
 (define (show x)
