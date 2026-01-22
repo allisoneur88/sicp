@@ -8,14 +8,14 @@
     ((symbol? exp) (lookup exp))
     ((define? exp) (eval-define exp))
     ((if? exp) (eval-if exp))
-    ((application? exp) (apply (*eval (car exp))
+    ((application? exp) (*apply (*eval (car exp))
                                (map *eval (cdr exp))))
     (else
       (error "Unknown Expression type: EVAL" exp))))
 
 (define scheme-apply apply)
 
-(define (apply operator operands)
+(define (*apply operator operands)
   (if (primitive? operator)
       (scheme-apply (get-scheme-procedure operator) operands)
       (error "Operator not a procedure: " operator)))
@@ -48,12 +48,6 @@
 (define (if? exp)
   (tag? exp '*if))
 
-; primitives
-(define (eval-plus exp)
-  (+ (*eval (cadr exp)) (*eval (caddr exp))))
-(define (eval-greater exp)
-  (> (*eval (cadr exp)) (*eval (caddr exp))))
-
 ; define
 (define (defenee exp)
   (cadr exp))
@@ -79,7 +73,7 @@
             ((eq? test #f)
              (*eval altern))
             (else
-             (error "Predicate does not eval to #t or #f: EVAL-IF" (*eval predic)))))))
+             (error "Predicate does not eval to #t or #f: EVAL-IF" test))))))
 
 (define (lookup thing)
   (get thing *env))
