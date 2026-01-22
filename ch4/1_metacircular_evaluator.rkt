@@ -1,6 +1,8 @@
+#lang sicp
+
 ; 4.1.1 The core of the Evaluator
 ; eval
-(define (eval exp env)
+(define (meval exp env)
   (cond ((self-evaluating? exp) exp)
         ((variable? exp) (lookup-variable-value exp env))
         ((quoted? exp) (text-of-quotation exp))
@@ -12,15 +14,15 @@
                                        env))
         ((begin? exp)
          (eval-sequence (begin-actions exp) env))
-        ((cond? exp) (eval (cond->if exp) env))
+        ((cond? exp) (meval (cond->if exp) env))
         ((application? exp)
-         (apply (eval (operator exp) env)
+         (mapply (meval (operator exp) env)
                 (list-of-values (operands exp) env)))
         (else
          (error "Unknown expression type: EVAL" exp))))
 
 ; apply
-(define (apply procedure arguments)
+(define (mapply procedure arguments)
   (cond ((primitive-procedure? procedure)
          (apply-primitive-procedure procedure arguments))
         ((compound-procedure? procedure)
@@ -37,33 +39,33 @@
 (define (list-of-values exps env)
   (if (no-operands? exps)
     '()
-    (cons (eval (first-operand exps) env)
+    (cons (meval (first-operand exps) env)
           (list-of-values (rest-operands exps) env))))
 
 ; eval-if
 (define (eval-if exp env)
-  (if (true? (eval (if-predicate exp) env))
-    (eval (if-consequent exp) env)
-    (eval (if-alternative exp) env)))
+  (if (true? (meval (if-predicate exp) env))
+    (meval (if-consequent exp) env)
+    (meval (if-alternative exp) env)))
 
 ; eval-sequence
 (define (eval-sequence exps env)
   (cond ((last-exp? exps)
-         (eval (first-exp exps) env))
+         (meval (first-exp exps) env))
         (else
-         (eval (first-exp exps) env)
+         (meval (first-exp exps) env)
          (eval-sequence (rest-exps exps) env))))
 
 ; assignment and definition
 (define (eval-assignment exp env)
   (set-variable-value! (assignment-variable exp)
-                       (eval (assignment-value exp) env)
+                       (meval (assignment-value exp) env)
                        env)
   'ok)
 
 (define (eval-definition exp env)
   (define-variable! (definition-variable exp)
-                    (eval (definition-value exp) env)
+                    (meval (definition-value exp) env)
                     env)
   'ok)
 
@@ -283,4 +285,3 @@
             ((eq? var (car vars)) (set-car! vals val))
             (else (scan (cdr vars) (cdr vals)))))
     (scan (frame-variables frame) (frame-values frame))))
-

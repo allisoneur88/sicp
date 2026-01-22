@@ -131,6 +131,11 @@
            product
            (fact-iter (** product counter) (*+ counter 1) max-count)))) *genv)
 
+(*eval (list '*+ '2 '3) *genv)
+
+(*eval '(*+ 2 3) *genv)
+
+
 (*eval '(*define factorial
          (*lambda (n)
           (fact-iter 1 1 n))) *genv)
