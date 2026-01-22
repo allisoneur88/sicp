@@ -2,14 +2,14 @@
 
 (define *env (make-table))
 
-(define (*eval exp)
+(define (*eval exp env)
   (cond
     ((number? exp) exp)
-    ((symbol? exp) (lookup exp))
-    ((define? exp) (eval-define exp))
-    ((if? exp) (eval-if exp))
-    ((application? exp) (*apply (*eval (car exp))
-                               (map *eval (cdr exp))))
+    ((symbol? exp) (lookup exp env))
+    ((define? exp) (eval-define exp env))
+    ((if? exp) (eval-if exp env))
+    ((application? exp) (*apply (*eval (car exp) env)
+                               (map (lambda (e) (*eval e env)) (cdr exp))))
     (else
       (error "Unknown Expression type: EVAL" exp))))
 
@@ -53,8 +53,8 @@
   (cadr exp))
 (define (define-value exp)
   (caddr exp))
-(define (eval-define exp)
-  (put! (defenee exp) (*eval (define-value exp)) *env))
+(define (eval-define exp env)
+  (put! (defenee exp) (*eval (define-value exp) env) env))
 
 ; if
 (define (predicate if-exp)
@@ -63,37 +63,37 @@
   (caddr if-exp))
 (define (alternative if-exp)
   (cadddr if-exp))
-(define (eval-if exp)
+(define (eval-if exp env)
   (let ((predic (predicate exp))
         (conseq (consequent exp))
         (altern (alternative exp)))
-    (let ((test (*eval predic)))
+    (let ((test (*eval predic env)))
       (cond ((eq? test #t)
-             (*eval conseq))
+             (*eval conseq env))
             ((eq? test #f)
-             (*eval altern))
+             (*eval altern env))
             (else
              (error "Predicate does not eval to #t or #f: EVAL-IF" test))))))
 
-(define (lookup thing)
-  (get thing *env))
+(define (lookup thing env)
+  (get thing env))
 
 ; tests
-(*eval '(*+ 5 (*+ 2 3)))
+(*eval '(*+ 5 (*+ 2 3)) *env)
 
 (*eval
-  '(*define x 5))
+  '(*define x 5) *env)
 
 (*eval
-  '(*+ x (*+ 2 3)))
+  '(*+ x (*+ 2 3)) *env)
 
 (*eval
   '(*if (*> x 6)
     x
-    (*+ x 66)))
+    (*+ x 66)) *env)
 
 (*eval
-  '(*if *true 5 6))
+  '(*if *true 5 6) *env)
 
 ; support table
 (define (get key table)
