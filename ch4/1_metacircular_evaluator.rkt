@@ -7,10 +7,10 @@
         ((variable? exp) (lookup-variable-value exp env))
         ((quoted? exp) (text-of-quotation exp))
         ((assignment? exp) (eval-assignment exp env))
-        ((definition? exp) (eval-difinition exp env))
+        ((definition? exp) (eval-definition exp env))
         ((if? exp) (eval-if exp env))
         ((lambda? exp) (make-procedure (lambda-parameters exp)
-                                       (labmda-body exp)
+                                       (lambda-body exp)
                                        env))
         ((begin? exp)
          (eval-sequence (begin-actions exp) env))
@@ -68,6 +68,22 @@
                     (meval (definition-value exp) env)
                     env)
   'ok)
+
+; ex. 4.1
+(define (list-of-vals-left-right exps env)
+  (if (no-operands? exps)
+      '()
+      (let ((eval-first (meval (first-operand exps) env)))
+       (cons eval-first
+             (list-of-vals-left-right (rest-operands exps) env)))))
+
+(define (list-of-vals-right-left exps env)
+  (if (no-operands? exps)
+      '()
+      (let ((eval-first (list-of-vals-right-left (rest-operands exps) env)))
+       (cons (meval (first-operand exps) env)
+             eval-first))))
+              
 
 ; 4.1.2 Representing Expressions
 
@@ -185,6 +201,159 @@
                 (expand-clauses rest))))))
 
 ; TODO: ex. 4.2 -> 4.10
+; ex. 4.2
+(define (meval exp env)
+  (cond ((self-evaluating? exp) exp)
+        ((call? exp) (eval-call exp env))
+        ((variable? exp) (lookup-variable-value exp env))
+        ((quoted? exp) (text-of-quotation exp))
+        ((assignment? exp) (eval-assignment exp env))
+        ((definition? exp) (eval-definition exp env))
+        ((if? exp) (eval-if exp env))
+        ((lambda? exp) (make-procedure (lambda-parameters exp)
+                                       (lambda-body exp)
+                                       env))
+        ((begin? exp)
+         (eval-sequence (begin-actions exp) env))
+        ((cond? exp) (meval (cond->if exp) env))
+        ((application? exp)
+         (mapply (meval (operator exp) env)
+                (list-of-values (operands exp) env)))
+        (else
+         (error "Unknown expression type: EVAL" exp))))
+
+(define (call? exp) (tagged-list? exp 'call))
+(define (call-operator exp)
+  (cadr exp))
+(define (call-operands exp)
+  (cddr exp))
+(define (eval-call exp env)
+  (mapply (meval (call-operator exp) env)
+          (list-of-values (call-operands exp) env)))
+
+; ex. 4.3 eval in data-directed style
+(define (generic-eval exp env)
+  (cond ((self-evaluating? exp) exp)
+        ((variable? exp) (lookup-variable-value exp env))
+        ((generic-or-application? exp) (handle-generic-or-application exp env))
+        (else (error "Unknown expressin type" exp))))
+
+(define (generic-or-application? exp)
+  (pair? exp))
+(define (handle-generic-or-application exp env)
+  (let ((generic-proc (get-handler (get-type exp))))
+    (if generic-proc
+     (generic-proc (other-pieces exp) env)
+     (handle-application exp env))))
+
+; ex. 4.4 'and' and 'or' special forms
+(define (meval exp env)
+  (cond ((self-evaluating? exp) exp)
+        ((variable? exp) (lookup-variable-value exp env))
+        ((quoted? exp) (text-of-quotation exp))
+        ((assignment? exp) (eval-assignment exp env))
+        ((definition? exp) (eval-definition exp env))
+        ((if? exp) (eval-if exp env))
+        ((lambda? exp) (make-procedure (lambda-parameters exp)
+                                       (lambda-body exp)
+                                       env))
+        ((begin? exp)
+         (eval-sequence (begin-actions exp) env))
+        ((cond? exp) (meval (cond->if exp) env))
+        ((and? exp) (eval-and (and-expressions exp) env))
+        ((or? exp) (eval-or (or-expressions exp) env))
+        ((application? exp)
+         (mapply (meval (operator exp) env)
+                (list-of-values (operands exp) env)))
+        (else
+         (error "Unknown expression type: EVAL" exp))))
+
+(define (and? exp)
+  (tagged-list? exp 'and))
+(define (or? exp)
+  (tagged-list? exp 'or))
+
+;(and (pred-1)...(pred-n))
+;(or  (pred-1)...(pred-n))
+(define (and-expressions exp) (cdr exp))
+(define (or-expressions exp) (cdr exp))
+(define (first-expression exps) (car exps))
+(define (rest-expressions exps) (cdr exps))
+(define (last-expression? exps) (null? (cdr exps)))
+
+(define (eval-and exps env)
+  (cond ((null? exps) true)
+        ((last-expression? exps)
+         (meval (first-expression exps) env))
+        (else
+         (let ((test (meval (first-expression exps) env)))
+          (if test
+           (eval-and (rest-expressions exps) env)
+           false)))))
+
+(define (eval-or exps env)
+  (cond ((null? exps) false)
+        ((last-expression? exps)
+         (meval (first-expression exps) env))
+        (else
+         (let ((test (meval (first-expression exps) env)))
+          (if test
+           test
+           (eval-or (rest-expressions exps) env))))))
+
+; ex. 4.5 addititonal syntax for cond
+; (<test> => <recipient>)
+
+;(cond ((assoc 'b '((a 1) (b 2))) => cadr)
+      ;(else false)))
+; TODO: 4.5
+
+; ex. 4.6 let expressions
+; (let ((var-1 (exp-1))
+;       (var-2 (exp-2))
+;       ...
+;       (var-n (exp-n)))
+;   <body>)
+
+; is equal to
+; ((lambda (var-1 var-2 ... var-n)
+;    <body>)
+;    exp-1 exp-2 ... exp-n)
+
+; 'let => '( (x (+ 2 3)) (y (* 2 3)) ) => '(+ x y)
+
+(define (let? exp) (tagged-list? exp 'let))
+(define (let-bindings exp) (cadr exp))
+(define (let-body exp) (cddr exp))
+
+(define (let->combination exp)
+  (let ((vars (map car (let-bindings exp)))
+        (exps (map cadr (let-bindings exp)))
+        (body (let-body exp)))
+    (cons (make-lambda vars body) exps)))
+  
+(define (meval exp env)
+  (cond ((self-evaluating? exp) exp)
+        ((variable? exp) (lookup-variable-value exp env))
+        ((quoted? exp) (text-of-quotation exp))
+        ((assignment? exp) (eval-assignment exp env))
+        ((definition? exp) (eval-definition exp env))
+        ((if? exp) (eval-if exp env))
+        ((lambda? exp) (make-procedure (lambda-parameters exp)
+                                       (lambda-body exp)
+                                       env))
+        ((begin? exp)
+         (eval-sequence (begin-actions exp) env))
+        ((cond? exp) (meval (cond->if exp) env))
+        ((and? exp) (eval-and (and-expressions exp) env))
+        ((or? exp) (eval-or (or-expressions exp) env))
+        ((let? exp) (meval (let->combination exp) env))
+        ((application? exp)
+         (mapply (meval (operator exp) env)
+                (list-of-values (operands exp) env)))
+        (else
+         (error "Unknown expression type: EVAL" exp))))
+
 
 ; 4.1.3 Evaluator Data Structures
 
@@ -285,3 +454,84 @@
             ((eq? var (car vars)) (set-car! vals val))
             (else (scan (cdr vars) (cdr vals)))))
     (scan (frame-variables frame) (frame-values frame))))
+
+; 4.1.4 Running the Evaluator as a Program
+(define (setup-environment)
+  (let ((initial-env
+         (extend-environment (primitive-procedure-names)
+                             (primitive-procedure-objects)
+                             the-empty-environment)))
+    (define-variable! 'true true initial-env)
+    (define-variable! 'false false initial-env)
+    initial-env))
+
+(define ge (setup-environment))
+
+(define (primitive-procedure? proc)
+  (tagged-list? proc 'primitive))
+(define (primitive-implementation proc) (cadr proc))
+
+(define primitive-procedures
+  (list
+    (list 'cons cons)
+    (list 'car car)
+    (list 'cdr cdr)
+    (list 'null? null?)
+    (list '+ +)
+    (list '- -)
+    (list '* *)
+    (list '/ /)
+    (list '> >)
+    (list '< <)
+    (list '>= >=)
+    (list '<= <=)
+    (list 'square (lambda (x) (* x x)))
+    (list 'cube (lambda (x) (* x x x)))))
+
+(define (primitive-procedure-names)
+  (map car primitive-procedures))
+(define (primitive-procedure-objects)
+  (map (lambda (proc) (list 'primitive (cadr proc)))
+       primitive-procedures))
+
+(define apply-in-underlying-scheme apply)
+
+(define (apply-primitive-procedure proc args)
+  (apply-in-underlying-scheme
+    (primitive-implementation proc) args))
+
+(meval '(+ 2 3) ge)
+(meval
+  '(define (factorial n)
+     (define (fact-iter product counter max-count)
+      (if (> counter max-count)
+       product
+       (fact-iter (* product counter) (+ counter 1) max-count)))
+     (fact-iter 1 1 n)) ge)
+
+(meval '(factorial 5) ge)
+
+; driver loop
+(define input-prompt  ";;; M-Eval Input:")
+(define output-prompt ";;; M-Eval Value:")
+(define (driver-loop)
+  (prompt-for-input input-prompt)
+  (let ((input (read)))
+    (let ((output (meval input ge)))
+      (announce-output output-prompt)
+      (user-print output)))
+  (driver-loop))
+
+(define (prompt-for-input string)
+  (newline) (newline) (display string) (newline))
+(define (announe-output string)
+  (newline) (display string) (newline))
+
+(define (user-print object)
+  (if (compound-procedure? object)
+      (display (list 'compound-procedure
+                     (procedure-parameters object)
+                     (procedure-body object)
+                     '<procedure-env>))
+      (display object)))
+
