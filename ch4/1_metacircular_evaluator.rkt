@@ -322,6 +322,13 @@
 
 ; 'let => '( (x (+ 2 3)) (y (* 2 3)) ) => '(+ x y)
 
+(meval '((lambda (x) (* x x)) 5) ge)
+(meval '(and (> 5 3) (= 5 (+ 2 3))) ge)
+(meval '(let
+         ((x 3)
+          (y 4))
+         (+ x y)) ge)
+
 (define (let? exp) (tagged-list? exp 'let))
 (define (let-bindings exp) (cadr exp))
 (define (let-body exp) (cddr exp))
@@ -477,6 +484,7 @@
     (list 'car car)
     (list 'cdr cdr)
     (list 'null? null?)
+    (list '= =)
     (list '+ +)
     (list '- -)
     (list '* *)
