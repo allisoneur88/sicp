@@ -16,6 +16,23 @@
 ; when it reaches the end of the sequence
 
 ; as an example of how these procedures are used:
+(define fib-machine
+  (make-machine
+    '(n acc)
+    (list (list '= =) (list 'mul *) (list 'sub -))
+    '(rec
+       (test (op =) (reg n) (const 1))
+       (branch (label fib-done))
+       (assign acc (op mul) (reg acc) (reg n))
+       (assign n (op sub) (reg n) (const 1))
+       (goto (label rec))
+      fib-done)))
+
+(set-register-contents! fib-machine 'n 4)
+(set-register-contents! fib-machine 'acc 1)
+(start fib-machine)
+(get-register-contents fib-machine 'acc)
+
 (define gcd-machine
   (make-machine
     '(a b t)
@@ -32,7 +49,6 @@
 ; to compute GCDs with this machine, we set the input
 ; registers, start the machine, and examine the result
 ; when the simulation terminates
-;		      <machine> <name> <value>
 (set-register-contents! gcd-machine 'a 206)
 ; done
 (set-register-contents! gcd-machine 'b 40)
