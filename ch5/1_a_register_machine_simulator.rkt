@@ -14,9 +14,41 @@
 ; simulates the execution of the given machine, starting from
 ; the beginning of the controller sequence and stopping
 ; when it reaches the end of the sequence
-
+;
 ; as an example of how these procedures are used:
-(define fib-machine
+
+(define fact-rec-machine
+  (make-machine
+    '(continue n val)
+    (list (list '= =) (list '- -) (list '* *))
+    '(
+       (assign continue (label fact-done))
+      fact-loop
+       (test (op =) (reg n) (const 1))
+       (branch (label base-case))
+       (save continue)
+       (save n)
+       (assign n (op -) (reg n) (const 1))
+       (assign continue (label after-fact))
+       (goto (label fact-loop))
+      after-fact
+       (restore n)
+       (restore continue)
+       (assign val (op *) (reg n) (reg val))
+       (goto (reg continue))
+      base-case
+       (assign val (const 1))
+       (goto (reg continue))
+      fact-done)))
+
+(set-register-contents! fact-rec-machine 'n 100)
+
+(start fact-rec-machine)
+(get-register-contents fact-rec-machine 'val)
+((fact-rec-machine 'stack) 'print-statistics)
+
+
+(define fact-machine
   (make-machine
     '(n acc)
     (list (list '= =) (list 'mul *) (list 'sub -))
@@ -28,10 +60,11 @@
        (goto (label rec))
       fib-done)))
 
-(set-register-contents! fib-machine 'n 4)
-(set-register-contents! fib-machine 'acc 1)
-(start fib-machine)
-(get-register-contents fib-machine 'acc)
+(set-register-contents! fact-machine 'n 4)
+(set-register-contents! fact-machine 'acc 1)
+(start fact-machine)
+(get-register-contents fact-machine 'acc)
+((fact-machine 'stack) 'print-statistics)
 
 (define gcd-machine
   (make-machine
@@ -88,28 +121,44 @@
   ((register 'set) value))
 
 ; THE STACK
-
 (define (make-stack)
-  (let ((s '()))
-    (define (push x) (set! s (cons x s)))
+  (let ((s '())
+        (number-pushes 0)
+        (max-depth 0)
+        (current-depth 0))
+    (define (push x)
+      (set! s (cons x s))
+      (set! number-pushes (+ number-pushes 1))
+      (set! current-depth (+ current-depth 1))
+      (set! max-depth (max max-depth current-depth)))
     (define (pop)
       (if (null? s)
        (error "Empty stack: POP")
        (let ((top (car s)))
         (set! s (cdr s))
+        (set! current-depth (- current-depth 1))
         top)))
     (define (initialize)
       (set! s '())
+      (set! number-pushes 0)
+      (set! max-depth 0)
+      (set! current-depth 0)
       'done)
+    (define (print-statistics)
+      (newline)
+      (display (list 'total-pushes '= number-pushes
+                     'maximum-depth '= max-depth)))
     (define (dispatch message)
       (cond ((eq? message 'push) push)
             ((eq? message 'pop) (pop))
             ((eq? message 'initialize) (initialize))
+            ((eq? message 'print-statistics) (print-statistics))
             (else (error "Unknown request: STACK" message))))
     dispatch))
 
+
 (define (pop stack) (stack 'pop))
-(define (push stack vallue) ((stack 'push) value))
+(define (push stack value) ((stack 'push) value))
 
 ; THE BASIC MACHINE
 
@@ -120,7 +169,9 @@
         (the-instruction-sequence '()))  ; 
     (let ((the-ops
            (list (list 'initialize-stack
-                       (lambda () (stack 'initialize)))))
+                       (lambda () (stack 'initialize)))
+                 (list 'print-stack-statistics
+                       (lambda () (stack 'print-statistics)))))
           (register-table
            (list (list 'pc pc) (list 'flag flag))))
 
