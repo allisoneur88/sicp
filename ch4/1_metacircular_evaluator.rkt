@@ -439,7 +439,7 @@
              (frame-values frame)))))
   (env-loop env))
 
-(define (set-variabale-value! var val env)
+(define (set-variable-value! var val env)
   (define (env-loop env)
     (define (scan vars vals)
       (cond ((null? vars)
@@ -532,7 +532,7 @@
 
 (define (prompt-for-input string)
   (newline) (newline) (display string) (newline))
-(define (announe-output string)
+(define (announce-output string)
   (newline) (display string) (newline))
 
 (define (user-print object)
